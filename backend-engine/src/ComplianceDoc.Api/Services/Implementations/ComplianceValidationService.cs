@@ -85,6 +85,8 @@ public sealed class ComplianceValidationService : IComplianceValidationService
     {
         var issues = new List<RiskIssue>();
 
+        AddSanctionsListIssues(issues, inv);
+
         // Rule 1 — Amount mismatch
         if (inv.Amount.HasValue && pay.Amount.HasValue && inv.Amount != pay.Amount)
         {
@@ -298,6 +300,15 @@ public sealed class ComplianceValidationService : IComplianceValidationService
             },
             new()
             {
+                Code = "sanctions_screening",
+                Label = "Seller and buyer are not on sanctions list",
+                Passed = !Has(IssueType.SanctionsListMatch),
+                Details = Has(IssueType.SanctionsListMatch)
+                    ? issues.First(x => x.Type == IssueType.SanctionsListMatch).Evidence
+                    : null
+            },
+            new()
+            {
                 Code = "bank_details_match",
                 Label = "Bank details match",
                 Passed = !Has(IssueType.BankDetailsMismatch),
@@ -336,8 +347,90 @@ public sealed class ComplianceValidationService : IComplianceValidationService
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
+    private static void AddSanctionsListIssues(List<RiskIssue> issues, ExtractedDocumentFields inv)
+    {
+        var sellerMatch = FindSanctionMatch(SanctionedSellers, inv.SellerName, inv.SellerBin);
+        if (sellerMatch is not null)
+            issues.Add(CreateSanctionsIssue("Seller", sellerMatch));
+
+        var buyerMatch = FindSanctionMatch(SanctionedBuyers, inv.BuyerName, inv.BuyerBin);
+        if (buyerMatch is not null)
+            issues.Add(CreateSanctionsIssue("Buyer", buyerMatch));
+    }
+
+    private static RiskIssue CreateSanctionsIssue(string role, SanctionEntry entry) => new()
+    {
+        Type = IssueType.SanctionsListMatch,
+        Severity = RiskSeverity.Critical,
+        ScoreImpact = 90,
+        Title = $"{role} sanctions list match",
+        Message = $"{role} was found in the mock sanctions list.",
+        Evidence = $"{role}: {entry.Name} / BIN {entry.Bin}; Sanctions ref: {entry.Reference}",
+        RecommendedAction = "Stop automatic processing and escalate the case to a compliance officer for sanctions review."
+    };
+
+    private static SanctionEntry? FindSanctionMatch(
+        IEnumerable<SanctionEntry> sanctions,
+        string? counterpartyName,
+        string? counterpartyBin)
+    {
+        return sanctions.FirstOrDefault(entry =>
+            (!string.IsNullOrWhiteSpace(counterpartyBin) && Same(entry.Bin, counterpartyBin)) ||
+            (!string.IsNullOrWhiteSpace(counterpartyName) && Same(entry.Name, counterpartyName)));
+    }
+
     private static bool Same(string? a, string? b) =>
         string.Equals(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private sealed record SanctionEntry(string Name, string Bin, string Reference);
+
+    private static readonly SanctionEntry[] SanctionedSellers =
+    {
+        new("CaspianTech JSC", "200310078901", "MOCK-SELLER-001"),
+        new("GoldStep Finance LLP", "231080012345", "MOCK-SELLER-002"),
+        new("AlmaTech Solutions LLP", "240540012345", "MOCK-SELLER-003"),
+        new("EastTrade Partners LLP", "211120034567", "MOCK-SELLER-004"),
+        new("KazEnergy Services LLP", "200560034890", "MOCK-SELLER-005"),
+        new("TechHub Almaty LLP", "230660087654", "MOCK-SELLER-006"),
+        new("TechnoParc Innovations LLP", "240890056123", "MOCK-SELLER-007"),
+        new("BioPharm Central LLP", "221130045678", "MOCK-SELLER-008"),
+        new("MedSupply Kazakhstan LLP", "200770078012", "MOCK-SELLER-009"),
+        new("PrimeBuild Construction JSC", "191040067890", "MOCK-SELLER-010"),
+        new("UrbanDev Holdings LLP", "220950034567", "MOCK-SELLER-011"),
+        new("NurLogistics Group LLP", "190830056789", "MOCK-SELLER-012"),
+        new("Zhibek Zholy Trading LLP", "230770089012", "MOCK-SELLER-013"),
+        new("AltaiFoods JSC", "190270065432", "MOCK-SELLER-014"),
+        new("CentralAsia IT Group JSC", "190640056789", "MOCK-SELLER-015"),
+        new("Nomad Digital LLP", "241080054321", "MOCK-SELLER-016"),
+        new("SteppeInvest LLP", "180920023456", "MOCK-SELLER-017"),
+        new("GreenMarket Retail LLP", "220140098765", "MOCK-SELLER-018"),
+        new("AstanaFreight Logistics LLP", "210330023456", "MOCK-SELLER-019"),
+        new("SilkRoad Imports LLP", "210450076543", "MOCK-SELLER-020")
+    };
+
+    private static readonly SanctionEntry[] SanctionedBuyers =
+    {
+        new("AlmaTech Solutions LLP", "240540012345", "MOCK-BUYER-001"),
+        new("EastTrade Partners LLP", "211120034567", "MOCK-BUYER-002"),
+        new("GoldStep Finance LLP", "231080012345", "MOCK-BUYER-003"),
+        new("Nomad Digital LLP", "241080054321", "MOCK-BUYER-004"),
+        new("Zhibek Zholy Trading LLP", "230770089012", "MOCK-BUYER-005"),
+        new("CaspianTech JSC", "200310078901", "MOCK-BUYER-006"),
+        new("CentralAsia IT Group JSC", "190640056789", "MOCK-BUYER-007"),
+        new("GreenMarket Retail LLP", "220140098765", "MOCK-BUYER-008"),
+        new("NurLogistics Group LLP", "190830056789", "MOCK-BUYER-009"),
+        new("UrbanDev Holdings LLP", "220950034567", "MOCK-BUYER-010"),
+        new("AstanaFreight Logistics LLP", "210330023456", "MOCK-BUYER-011"),
+        new("SilkRoad Imports LLP", "210450076543", "MOCK-BUYER-012"),
+        new("TechnoParc Innovations LLP", "240890056123", "MOCK-BUYER-013"),
+        new("PrimeBuild Construction JSC", "191040067890", "MOCK-BUYER-014"),
+        new("BioPharm Central LLP", "221130045678", "MOCK-BUYER-015"),
+        new("MedSupply Kazakhstan LLP", "200770078012", "MOCK-BUYER-016"),
+        new("AltaiFoods JSC", "190270065432", "MOCK-BUYER-017"),
+        new("SteppeInvest LLP", "180920023456", "MOCK-BUYER-018"),
+        new("TechHub Almaty LLP", "230660087654", "MOCK-BUYER-019"),
+        new("KazEnergy Services LLP", "200560034890", "MOCK-BUYER-020")
+    };
 
     private static readonly string[] DateFormats =
     {

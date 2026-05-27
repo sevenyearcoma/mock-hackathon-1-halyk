@@ -34,5 +34,6 @@ public enum IssueType
     MissingRequiredField,
     MissingContractReference,
     MissingInvoiceReference,
-    ServiceDescriptionMismatch
+    ServiceDescriptionMismatch,
+    SanctionsListMatch
 }
