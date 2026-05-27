@@ -4,6 +4,12 @@ using ComplianceDoc.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(o =>
+    o.AddDefaultPolicy(p =>
+        p.WithOrigins("http://localhost:3000", "http://localhost:3001")
+         .AllowAnyMethod()
+         .AllowAnyHeader()));
+
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
     {
@@ -30,6 +36,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors();
 app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();
