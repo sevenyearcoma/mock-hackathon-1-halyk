@@ -144,20 +144,34 @@ public sealed class ComplianceValidationService : IComplianceValidationService
             });
         }
 
-        // Rule 4 — Bank details mismatch (seller IBAN ↔ receiver IBAN)
-        if (!string.IsNullOrWhiteSpace(inv.SellerIban) &&
+        // Rule 4 — Bank details mismatch (IBAN and/or bank name)
+        var ibanMismatch =
+            !string.IsNullOrWhiteSpace(inv.SellerIban) &&
             !string.IsNullOrWhiteSpace(pay.ReceiverIban) &&
-            !Same(inv.SellerIban, pay.ReceiverIban))
+            !Same(inv.SellerIban, pay.ReceiverIban);
+
+        var bankNameMismatch =
+            !string.IsNullOrWhiteSpace(inv.SellerBank) &&
+            !string.IsNullOrWhiteSpace(pay.ReceiverBank) &&
+            !Same(inv.SellerBank, pay.ReceiverBank);
+
+        if (ibanMismatch || bankNameMismatch)
         {
+            var evidenceParts = new List<string>();
+            if (bankNameMismatch)
+                evidenceParts.Add($"Банк продавца (счёт): {inv.SellerBank}; Банк получателя (платёж): {pay.ReceiverBank}");
+            if (ibanMismatch)
+                evidenceParts.Add($"IBAN продавца: {inv.SellerIban}; IBAN получателя: {pay.ReceiverIban}");
+
             issues.Add(new RiskIssue
             {
                 Type = IssueType.BankDetailsMismatch,
                 Severity = RiskSeverity.High,
                 ScoreImpact = 40,
                 Title = "Bank details mismatch",
-                Message = "The seller's IBAN on the invoice does not match the receiver's IBAN on the payment order.",
-                Evidence = $"Invoice seller IBAN: {inv.SellerIban}; Payment receiver IBAN: {pay.ReceiverIban}",
-                RecommendedAction = "Ask the client to confirm the correct bank account for the transfer."
+                Message = "The bank details on the invoice do not match those on the payment order.",
+                Evidence = string.Join("; ", evidenceParts),
+                RecommendedAction = "Ask the client to confirm the correct bank name and account number for the transfer."
             });
         }
 
