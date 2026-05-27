@@ -6,7 +6,6 @@ We are building a hackathon MVP for **ComplianceDoc Copilot** — an AI-assisted
 
 The product helps a bank employee review documents for a foreign currency payment:
 
-- Contract
 - Invoice
 - Payment order
 
@@ -1208,3 +1207,44 @@ The best backend is the one that:
 - explains every detected issue;
 - keeps the human in control;
 - is simple enough to finish fast.
+
+## On input we will get:
+
+```json
+[
+    {
+    "id": 99,
+    "invoice": {
+      "inv_number": "INV-2026-0099",
+      "inv_date": "26 Mar 2026",
+      "inv_due_date": "02 Apr 2026",
+      "inv_currency": "EUR",
+      "inv_subtotal": 7000,
+      "inv_vat": 0,
+      "inv_total": 7000,
+      "inv_seller_name": "Nomad Digital LLP",
+      "inv_seller_bin": "241080054321",
+      "inv_seller_bank": "ForteBank JSC",
+      "inv_seller_iban": "KZ246010000054321098",
+      "inv_buyer_name": "GoldStep Finance LLP",
+      "inv_buyer_bin": "231080012345",
+      "inv_contract_no": "GF-ND-02/2026",
+      "inv_contract_date": "2026-01-13"
+    },
+    "payment_order": {
+      "pay_date": "03 Apr 2026",
+      "pay_payer_name": "GoldStep Finance LLP",
+      "pay_payer_bin": "231080012345",
+      "pay_payer_bank": "Halyk Bank Kazakhstan JSC",
+      "pay_payer_iban": "KZ859650000012345099",
+      "pay_receiver_name": "Nomad Digital LLP",
+      "pay_receiver_bin": "241080054321",
+      "pay_receiver_bank": "ForteBank JSC",
+      "pay_receiver_iban": "KZ246010000054321098",
+      "pay_amount": 7000,
+      "pay_currency": "EUR",
+      "pay_purpose": "Payment for accounting services under Contract No. GF-ND-02/2026, Invoice No. INV-2026-0099"
+    }
+  }
+]
+```
